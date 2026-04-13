@@ -24,10 +24,10 @@ int fast_time_left = 0;
 int got_totem = 0;      
 
 int difficulty_speed = 100;
-int score_mult = 1; // Multiplier based on difficulty
+int score_mult = 1; //Changes the score if difficulty changes
 char player_name[16] = "Player";
 
-// struct for leaderboard
+// leaderboard
 typedef struct {
     char name[16];
     int score;
@@ -35,20 +35,20 @@ typedef struct {
 
 PlayerData top_players[5]; 
 
-// linking our assembly functions
+// linking assembly functions
 extern void start_random_asm(int seed);
 extern int get_random_num_asm(int max_val);
 extern int calc_score_asm(int base_points, int is_sugar_active, int snake_length);
 
-// moving cursor instead of wiping screen so it doesnt blink
-void clear_screen() {
+// the cursor clears everything to make sure nothing extra is visible on screen
+void clearscreen() {
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     COORD Position = {0, 0};
     SetConsoleCursorPosition(hOut, Position);
 }
 
-// hiding that annoying blinking text cursor
-void hide_cursor() {
+// hiding the cursor 
+void hidecursor() {
     HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
     CONSOLE_CURSOR_INFO info;
     info.dwSize = 100;
@@ -56,11 +56,11 @@ void hide_cursor() {
     SetConsoleCursorInfo(consoleHandle, &info);
 }
 
-void print_spaces(int spaces) {
+void printspace(int spaces) {
     for (int i = 0; i < spaces; i++) printf(" ");
 }
 
-// taking name input without breaking the terminal
+// name of player
 void take_player_name(char* buffer, int limit) {
     int i = 0;
     while(1) {
@@ -69,7 +69,7 @@ void take_player_name(char* buffer, int limit) {
             if (i > 0) break; // need at least one letter
         } 
         else if (ch == '\b' && i > 0) { 
-            printf("\b \b"); // visually delete it
+            printf("\b \b"); 
             i--;         
         } 
         else if (i < limit - 1 && ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9'))) {
@@ -80,12 +80,12 @@ void take_player_name(char* buffer, int limit) {
     buffer[i] = '\0'; 
 }
 
-// updating the leaderboard array
+// updating the leaderboard 
 void save_score(char* p_name, int final_points) {
     for(int i = 0; i < 5; i++) {
         if(final_points >= top_players[i].score) {
             for(int j = 4; j > i; j--) {
-                top_players[j] = top_players[j-1]; // push everyone down
+                top_players[j] = top_players[j-1]; 
             }
             strcpy(top_players[i].name, p_name);
             top_players[i].score = final_points;
@@ -93,7 +93,7 @@ void save_score(char* p_name, int final_points) {
         }
     }
 }
-
+// function to show leaderboard
 void show_leaderboard() {
     system("cls"); 
     printf("==============================\n");
@@ -113,7 +113,7 @@ void show_leaderboard() {
     printf("\nPress any key to return...");
     _getch();
 }
-
+// screen comes up before the game starts to explain everything to new player
 void show_rules() {
     system("cls");
     printf("====================================================\n");
@@ -133,7 +133,7 @@ void show_rules() {
     printf(" Press any key to start...\n");
     _getch(); 
 }
-
+// main menu of the game comes up when .exe files is run
 void main_menu() {
     int in_menu = 1;
     while (in_menu) {
@@ -171,9 +171,9 @@ void main_menu() {
     }
     system("cls"); 
 }
-
-void init_game() {
-    hide_cursor();
+// reseting game variables before every new game
+void newgame() {
+    hidecursor();
     start_random_asm((int)time(NULL)); 
     
     game_over = 0;
@@ -191,16 +191,16 @@ void init_game() {
     got_totem = 0;
     game_speed = difficulty_speed; 
     
-    // Set our score multiplier based on difficulty
+    // changing the multiplier accoring to difficulty
     if (difficulty_speed == 150) score_mult = 1;
     else if (difficulty_speed == 100) score_mult = 2;
     else if (difficulty_speed == 50) score_mult = 3;
 }
+// drawing the main grid where the snake moves
+void grid() {
+    clearscreen(); 
 
-void render_frame() {
-    clear_screen(); 
-
-    // math to push the grid to the middle of the screen
+    // calculates the terminal windows size and shifts the grid to theh centre of terminal
     CONSOLE_SCREEN_BUFFER_INFO info;
     GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info);
     int cols = info.srWindow.Right - info.srWindow.Left + 1;
@@ -266,12 +266,12 @@ void render_frame() {
     else if (fast_time_left > 0) printf("[!] SUGAR RUSH! 2x Speed & 2x Points!        \n");
     else printf("Use WASD to move, X to quit.                 \n");
 }
-
-void check_keys() {
+// to check the key inputs
+void keyinputs() {
     if (_kbhit()) {
         char k = _getch();
         
-        // reversing controls if drunk
+        // changing the controls for special drunk mode
         if (drunk_time_left > 0) {
             if (k == 'w') k = 's';
             else if (k == 's') k = 'w';
@@ -288,8 +288,8 @@ void check_keys() {
         }
     }
 }
-
-void update_game() {
+// does the main work in game 
+void maingame() {
     int p_x = body_x[0];
     int p_y = body_y[0];
     int p2_x, p2_y;
@@ -318,13 +318,13 @@ void update_game() {
     int hit_wall = 0;
     if (head_x >= max_width || head_x < 0 || head_y >= max_height || head_y < 0) hit_wall = 1;
     
-    // ONLY check self-collision if we are actually moving! (Fixes instant death on resurrection)
+    // check self-collision if we are actually moving 
     if (direction != 0) {
         for (int i = 0; i < tail_length; i++)
             if (body_x[i] == head_x && body_y[i] == head_y) hit_wall = 1;
     }
 
-    // totem save logic with dynamic cash out
+    // totem ability if you die
     if (hit_wall) {
         if (got_totem) {
             system("cls");
@@ -352,13 +352,13 @@ void update_game() {
                 direction = 0;             
                 drunk_time_left = 0; 
                 
-                // Stack body safely so it unfurls when moving
+                // move the body in safe position 
                 for(int i = 0; i < tail_length; i++) {
                     body_x[i] = head_x;
                     body_y[i] = head_y;
                 }
             } else {
-                // cashed out (adds 50% of whatever their score is)
+                // adding 50% to the score
                 current_score += (current_score / 2);
                 game_over = 1;
             }
@@ -377,7 +377,7 @@ void update_game() {
         if (item_life <= 0) is_item_spawned = 0; 
     }
 
-    // ate normal apple (Base Points * Multiplier)
+    // ate normal apple 
     if (head_x == apple_x && head_y == apple_y) {
         int sugar_stat = (fast_time_left > 0) ? 1 : 0; 
         current_score += calc_score_asm(10 * score_mult, sugar_stat, tail_length);
@@ -386,7 +386,7 @@ void update_game() {
         tail_length++;
     }
 
-    // chance to spawn powerup
+    // chance to spawn special abilities
     if (is_item_spawned == 0 && (get_random_num_asm(50) == 1)) {
         item_x = get_random_num_asm(max_width);
         item_y = get_random_num_asm(max_height);
@@ -396,7 +396,7 @@ void update_game() {
         else if (r < 90) item_symbol = '%';
         else item_symbol = 'T'; 
 
-        // randomize lifespan: 30, 50, or 70 frames (roughly 3, 5, or 7 seconds)
+        // randomizing lifespan of abilites 
         int random_time = get_random_num_asm(3); 
         if (random_time == 0) item_life = 30;      
         else if (random_time == 1) item_life = 50; 
@@ -405,7 +405,7 @@ void update_game() {
         is_item_spawned = 1;
     }
 
-    // ate powerup
+    // ate special ability
     if (is_item_spawned == 1 && head_x == item_x && head_y == item_y) {
         is_item_spawned = 0; 
         
@@ -429,7 +429,7 @@ void update_game() {
 }
 
 int main() {
-    // clear leaderboard on startup
+    // clear leaderboard on every run
     for(int i = 0; i < 5; i++) {
         strcpy(top_players[i].name, "---");
         top_players[i].score = 0;
@@ -437,12 +437,12 @@ int main() {
 
     while(1) {
         main_menu(); 
-        init_game();
+        newgame();
         
         while (!game_over) {
-            render_frame();
-            check_keys();
-            update_game();
+            grid();
+            keyinputs();
+            maingame();
             Sleep(game_speed); 
         }
         
