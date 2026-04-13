@@ -215,12 +215,12 @@ void grid() {
 
     for (int i = 0; i < pad_y; i++) printf("\n");
 
-    print_spaces(pad_x);
+    printspace(pad_x);
     for (int i = 0; i < max_width + 2; i++) printf("# ");
     printf("\n");
 
     for (int i = 0; i < max_height; i++) {
-        print_spaces(pad_x);
+        printspace(pad_x);
         for (int j = 0; j < max_width; j++) {
             if (j == 0) printf("# "); 
                 
@@ -254,13 +254,13 @@ void grid() {
         printf("\n");
     }
 
-    print_spaces(pad_x);
+    printspace(pad_x);
     for (int i = 0; i < max_width + 2; i++) printf("# ");
     printf("\n");
     
-    print_spaces(pad_x); printf("Player: %s | Score: %d (x%d Multiplier)\n", player_name, current_score, score_mult);
+    printspace(pad_x); printf("Player: %s | Score: %d (x%d Multiplier)\n", player_name, current_score, score_mult);
     
-    print_spaces(pad_x);
+    printspace(pad_x);
     if (got_totem) printf("[+] TOTEM EQUIPPED! Crash to use it!           \n");
     else if (drunk_time_left > 0) printf("[!] DRUNK MODE ACTIVE! Controls Reversed!    \n");
     else if (fast_time_left > 0) printf("[!] SUGAR RUSH! 2x Speed & 2x Points!        \n");
